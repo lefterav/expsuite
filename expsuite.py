@@ -584,6 +584,7 @@ class PyExperimentSuite(object):
             
         # loop through iterations and call iterate
         for it in xrange(restore, params['iterations']):
+            os.chdir(fullpath)
             dic = self.iterate(params, rep, it)
             if self.restore_supported:
                 self.save_state(params, rep, it)
