@@ -578,6 +578,7 @@ class PyExperimentSuite(object):
         
         if restore:
             logfile = open(logname, 'a')
+            os.chdir(fullpath)
             self.restore_state(params, rep, restore)
         else:
             logfile = open(logname, 'w')
