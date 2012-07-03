@@ -22,6 +22,8 @@
 from ConfigParser import ConfigParser
 from multiprocessing import Process, Pool, cpu_count
 from numpy import *
+import traceback
+import sys
 import os, sys, time, itertools, re, optparse, types
 
 def mp_runrep(args):
@@ -586,7 +588,14 @@ class PyExperimentSuite(object):
         # loop through iterations and call iterate
         for it in xrange(restore, params['iterations']):
             os.chdir(fullpath)
-            dic = self.iterate(params, rep, it)
+            try:
+                dic = self.iterate(params, rep, it)
+            except Exception as exc:
+                trc = traceback.format_exc()
+                sys.stderr.write("\nSuite caught exception: {}\n".format(exc))
+                sys.stderr.write("trace\n{}\n".format(trc))
+                logfile.close()
+                return
             if self.restore_supported:
                 self.save_state(params, rep, it)
                 
