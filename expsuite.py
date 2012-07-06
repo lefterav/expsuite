@@ -371,7 +371,23 @@ class PyExperimentSuite(object):
             
         return results
         
-            
+        
+    def haserror(self, params, rep):
+        """ Helper function to identify exceptions on one experiment. """
+        fullpath = os.path.join(params['path'], params['name'])
+        logname = os.path.join(fullpath, '%i.log'%rep)
+        if os.path.exists(logname):
+            logfile = open(logname, 'r')
+            lines = logfile.readlines()
+            print lines
+            print lines[-1]
+            logfile.close()
+            if "exception:error" in lines[-1]:
+                return True
+            else:
+                return False
+        else: 
+            return False
     
     def browse(self): 
         """ go through all subfolders (starting at '.') and return information
@@ -395,12 +411,15 @@ class PyExperimentSuite(object):
                 prog += progress(params, i)
             prog /= params['repetitions']
             
+            haserror = self.haserror(params, i)
             # if progress flag is set, only show the progress bars
             if self.options.progress:
                 bar = "["
                 bar += "="*int(prog/4)
                 bar += " "*int(25-prog/4)
                 bar += "]"
+                if haserror:
+                    bar += " *"
                 print '%3i%% %27s %s'%(prog,bar,d)
                 continue
             
@@ -425,8 +444,11 @@ class PyExperimentSuite(object):
                 
             else:      
                 print '         started %s'%time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.stat(minfile).st_mtime))
-                print '           ended %s'%time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.stat(maxfile).st_mtime))
-            
+                
+                if haserror:
+                    print '     *** crashed %s'%time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.stat(maxfile).st_mtime))
+                else:
+                    print '           ended %s'%time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.stat(maxfile).st_mtime))
             for k in ['repetitions', 'iterations']:
                 print '%16s %s'%(k, params[k])   
             
@@ -563,6 +585,11 @@ class PyExperimentSuite(object):
         if os.path.exists(logname):
             logfile = open(logname, 'r')
             lines = logfile.readlines()
+            
+            #throw away the line that reports the error
+            if "exception:error" in lines[-1]:
+                lines = lines[:-1]
+            
             logfile.close()
             
             # if completed, continue loop
@@ -585,21 +612,29 @@ class PyExperimentSuite(object):
             self.restore_state(params, rep, restore)
         else:
             logfile = open(logname, 'w')
-            
+        
         # loop through iterations and call iterate
         for it in xrange(restore, params['iterations']):
             os.chdir(fullpath)
             try:
                 dic = self.iterate(params, rep, it)
             except Exception as exc:
+                #log the exception on the general rep log
+                logfile.write("exception:error")
+                
+                #obtain the exception information and display them on the sys error 
                 trc = traceback.format_exc()
                 sys.stderr.write("\nSuite caught exception: {}\n".format(exc))
                 sys.stderr.write("trace\n{}\n".format(trc))
-                f = open(datetime.now().strftime('exception-%Y_%m_%d__%H_%M_%S.log'), 'w')
+                
+                #create a one-time log file and put the exception information
+                exception_logname = os.path.join(fullpath, datetime.now().strftime('exception-%Y_%m_%d__%H_%M_%S.stderr'))
+                f = open(exception_logname, 'w')
                 f.write("\nSuite caught exception: {}\n".format(exc))
                 f.write("trace\n{}\n".format(trc))
-                logfile.write("exception:error")
                 f.close()
+                
+                #break the repeat loop (will lead to logfile.close())
                 break
             
             if self.restore_supported:
