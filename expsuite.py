@@ -25,6 +25,7 @@ from numpy import *
 import traceback
 import sys
 import os, sys, time, itertools, re, optparse, types
+from datetime import datetime
 
 def mp_runrep(args):
     """ Helper function to allow multiprocessing support. """
@@ -594,8 +595,13 @@ class PyExperimentSuite(object):
                 trc = traceback.format_exc()
                 sys.stderr.write("\nSuite caught exception: {}\n".format(exc))
                 sys.stderr.write("trace\n{}\n".format(trc))
-                logfile.close()
-                return
+                f = open(datetime.now().strftime('exception-%Y_%m_%d__%H_%M_%S.log'), 'w')
+                f.write("\nSuite caught exception: {}\n".format(exc))
+                f.write("trace\n{}\n".format(trc))
+                logfile.write("exception:error")
+                f.close()
+                break
+            
             if self.restore_supported:
                 self.save_state(params, rep, it)
                 
@@ -612,7 +618,7 @@ class PyExperimentSuite(object):
                 
             # build string from dictionary
             outstr = ' '.join(map(lambda x: '%s:%s'%(x[0], str(x[1])), dic.items()))
-            logfile.write(outstr + '\n')
+            logfile.write("{}\n".format(outstr))
             logfile.flush()
         logfile.close()
     
