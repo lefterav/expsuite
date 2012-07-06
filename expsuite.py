@@ -379,12 +379,14 @@ class PyExperimentSuite(object):
         if os.path.exists(logname):
             logfile = open(logname, 'r')
             lines = logfile.readlines()
-            print lines
-            print lines[-1]
+
             logfile.close()
-            if "exception:error" in lines[-1]:
-                return True
-            else:
+            try: 
+                if "exception:error" in lines[-1]:
+                    return True
+                else:
+                    return False
+            except IndexError: #if lines are empty
                 return False
         else: 
             return False
@@ -587,8 +589,11 @@ class PyExperimentSuite(object):
             lines = logfile.readlines()
             
             #throw away the line that reports the error
-            if "exception:error" in lines[-1]:
-                lines = lines[:-1]
+            try:
+                if "exception:error" in lines[-1]:
+                    lines = lines[:-1]
+            except IndexError: #if lines is empty
+                pass
             
             logfile.close()
             
