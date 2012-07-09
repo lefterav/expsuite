@@ -626,6 +626,7 @@ class PyExperimentSuite(object):
             except Exception as exc:
                 #log the exception on the general rep log
                 logfile.write("exception:error")
+                logfile.flush()
                 
                 #obtain the exception information and display them on the sys error 
                 trc = traceback.format_exc()
@@ -661,6 +662,7 @@ class PyExperimentSuite(object):
             logfile.write("{}\n".format(outstr))
             logfile.flush()
         logfile.close()
+        return True
     
     
     def reset(self, params, rep):
