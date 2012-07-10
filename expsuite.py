@@ -628,7 +628,7 @@ class PyExperimentSuite(object):
             except Exception as exc:
                 #obtain the exception information
                 trc = traceback.format_exc()
-                self._print_excecption(trc, exc, fullpath):
+                self._print_exception(trc, exc, fullpath)
                 
                 #log the exception on the general rep log
                 logfile.write("exception:error")
@@ -643,7 +643,7 @@ class PyExperimentSuite(object):
                 except Exception as exc:
                     #obtain the exception information, print them but don't break
                     trc = traceback.format_exc()
-                    self._print_exception(trc, exc, fullpath):
+                    self._print_exception(trc, exc, fullpath)
                     
                     #log the exception on the general rep log
                     logfile.write("exception:error")
