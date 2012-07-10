@@ -531,6 +531,8 @@ class PyExperimentSuite(object):
             self.browse()
             raise SystemExit
         
+        sys.setrecursionlimit(2000)
+        
         # read main configuration file
         paramlist = []
         for exp in self.cfgparser.sections():
@@ -624,27 +626,29 @@ class PyExperimentSuite(object):
             try:
                 dic = self.iterate(params, rep, it)
             except Exception as exc:
+                #obtain the exception information
+                trc = traceback.format_exc()
+                self._print_excecption(trc, exc, fullpath):
+                
                 #log the exception on the general rep log
                 logfile.write("exception:error")
                 logfile.flush()
-                
-                #obtain the exception information and display them on the sys error 
-                trc = traceback.format_exc()
-                sys.stderr.write("\nSuite caught exception: {}\n".format(exc))
-                sys.stderr.write("trace\n{}\n".format(trc))
-                
-                #create a one-time log file and put the exception information
-                exception_logname = os.path.join(fullpath, datetime.now().strftime('exception-%Y_%m_%d__%H_%M_%S.stderr'))
-                f = open(exception_logname, 'w')
-                f.write("\nSuite caught exception: {}\n".format(exc))
-                f.write("trace\n{}\n".format(trc))
-                f.close()
                 
                 #break the repeat loop (will lead to logfile.close())
                 break
             
             if self.restore_supported:
-                self.save_state(params, rep, it)
+                try:
+                    self.save_state(params, rep, it)
+                except Exception as exc:
+                    #obtain the exception information, print them but don't break
+                    trc = traceback.format_exc()
+                    self._print_exception(trc, exc, fullpath):
+                    
+                    #log the exception on the general rep log
+                    logfile.write("exception:error")
+                    logfile.flush()
+                
                 
             # replace all spaces in keys with underscores
             for k in dic:
@@ -662,8 +666,19 @@ class PyExperimentSuite(object):
             logfile.write("{}\n".format(outstr))
             logfile.flush()
         logfile.close()
-        return True
     
+    
+    def _print_exception(self, trc, exc, fullpath):
+        sys.stderr.write("\nSuite caught exception: {}\n".format(exc))
+        sys.stderr.write("trace\n{}\n".format(trc))
+        
+        #create a one-time log file and put the exception information
+        exception_logname = os.path.join(fullpath, datetime.now().strftime('exception-%Y_%m_%d__%H_%M_%S.stderr'))
+        f = open(exception_logname, 'w')
+        f.write("\nSuite caught exception: {}\n".format(exc))
+        f.write("trace\n{}\n".format(trc))
+        f.close()
+
     
     def reset(self, params, rep):
         """ needs to be implemented by subclass. """
