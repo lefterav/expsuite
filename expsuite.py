@@ -23,7 +23,6 @@ from ConfigParser import ConfigParser
 from multiprocessing import Process, Pool, cpu_count
 from numpy import *
 import traceback
-import logging
 import sys
 import os, sys, time, itertools, re, optparse, types
 from datetime import datetime
@@ -195,7 +194,6 @@ class PyExperimentSuite(object):
         try:
             f = open(logfile)
         except IOError:
-            logging.info("Cannot open repetition log file %s, experiment probably not finished", logfile)
             if len(tags) == 1:
                 return []
             else:
@@ -205,7 +203,6 @@ class PyExperimentSuite(object):
             pairs = line.split()
             for pair in pairs:
                 tag,val = pair.split(':')
-                logging.debug("exp = %s, value = %s" , os.path.basename(exp), pair)
                 if tags == 'all' or tag in tags:
                     if not tag in results:
                         try:
@@ -220,7 +217,6 @@ class PyExperimentSuite(object):
                             
         f.close()
         if len(results) == 0:
-            logging.info("experiment %s returned no values" , os.path.basename(exp))
             if len(tags) == 1:
                 return []
             else:
