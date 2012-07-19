@@ -559,6 +559,8 @@ class PyExperimentSuite(object):
         logname = os.path.join(fullpath, '%i.log'%rep)
         # check if repetition exists and has been completed
         restore = 0
+        sys.stderr.write("Looking in path {}".format(fullpath))
+
         if os.path.exists(logname):
             logfile = open(logname, 'r')
             lines = logfile.readlines()
