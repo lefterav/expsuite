@@ -25,6 +25,7 @@ from numpy import *
 import traceback
 import sys
 import os, sys, time, itertools, re, optparse, types
+from datetime import datetime
 
 def mp_runrep(args):
     """ Helper function to allow multiprocessing support. """
@@ -370,7 +371,25 @@ class PyExperimentSuite(object):
             
         return results
         
-            
+        
+    def haserror(self, params, rep):
+        """ Helper function to identify exceptions on one experiment. """
+        fullpath = os.path.join(params['path'], params['name'])
+        logname = os.path.join(fullpath, '%i.log'%rep)
+        if os.path.exists(logname):
+            logfile = open(logname, 'r')
+            lines = logfile.readlines()
+
+            logfile.close()
+            try: 
+                if "exception:error" in lines[-1]:
+                    return True
+                else:
+                    return False
+            except IndexError: #if lines are empty
+                return False
+        else: 
+            return False
     
     def browse(self): 
         """ go through all subfolders (starting at '.') and return information
@@ -394,12 +413,15 @@ class PyExperimentSuite(object):
                 prog += progress(params, i)
             prog /= params['repetitions']
             
+            haserror = self.haserror(params, i)
             # if progress flag is set, only show the progress bars
             if self.options.progress:
                 bar = "["
                 bar += "="*int(prog/4)
                 bar += " "*int(25-prog/4)
                 bar += "]"
+                if haserror:
+                    bar += " *"
                 print '%3i%% %27s %s'%(prog,bar,d)
                 continue
             
@@ -424,8 +446,11 @@ class PyExperimentSuite(object):
                 
             else:      
                 print '         started %s'%time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.stat(minfile).st_mtime))
-                print '           ended %s'%time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.stat(maxfile).st_mtime))
-            
+                
+                if haserror:
+                    print '     *** crashed %s'%time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.stat(maxfile).st_mtime))
+                else:
+                    print '           ended %s'%time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.stat(maxfile).st_mtime))
             for k in ['repetitions', 'iterations']:
                 print '%16s %s'%(k, params[k])   
             
@@ -506,6 +531,8 @@ class PyExperimentSuite(object):
             self.browse()
             raise SystemExit
         
+        sys.setrecursionlimit(2000)
+        
         # read main configuration file
         paramlist = []
         for exp in self.cfgparser.sections():
@@ -564,6 +591,14 @@ class PyExperimentSuite(object):
         if os.path.exists(logname):
             logfile = open(logname, 'r')
             lines = logfile.readlines()
+            
+            #throw away the line that reports the error
+            try:
+                if "exception:error" in lines[-1]:
+                    lines = lines[:-1]
+            except IndexError: #if lines is empty
+                pass
+            
             logfile.close()
             
             # if completed, continue loop
@@ -586,20 +621,31 @@ class PyExperimentSuite(object):
             self.restore_state(params, rep, restore)
         else:
             logfile = open(logname, 'w')
-            
+        
         # loop through iterations and call iterate
         for it in xrange(restore, params['iterations']):
             os.chdir(fullpath)
             try:
                 dic = self.iterate(params, rep, it)
             except Exception as exc:
+                #obtain the exception information
                 trc = traceback.format_exc()
-                sys.stderr.write("\nSuite caught exception: {}\n".format(exc))
-                sys.stderr.write("trace\n{}\n".format(trc))
-                logfile.close()
-                return
+                self._print_exception(trc, exc, fullpath)
+                
+                #log the exception on the general rep log
+                logfile.write("exception:error")
+                logfile.flush()
+                
+                #break the repeat loop (will lead to logfile.close())
+                break
+            
             if self.restore_supported:
-                self.save_state(params, rep, it)
+                try:
+                    self.save_state(params, rep, it)
+                except Exception as exc:
+                    #obtain the exception information, print them but don't break
+                    trc = traceback.format_exc()
+                    self._print_exception(trc, exc, fullpath)
                 
             # replace all spaces in keys with underscores
             for k in dic:
@@ -614,10 +660,22 @@ class PyExperimentSuite(object):
                 
             # build string from dictionary
             outstr = ' '.join(map(lambda x: '%s:%s'%(x[0], str(x[1])), dic.items()))
-            logfile.write(outstr + '\n')
+            logfile.write("{}\n".format(outstr))
             logfile.flush()
         logfile.close()
     
+    
+    def _print_exception(self, trc, exc, fullpath):
+        sys.stderr.write("\nSuite caught exception: {}\n".format(exc))
+        sys.stderr.write("trace\n{}\n".format(trc))
+        
+        #create a one-time log file and put the exception information
+        exception_logname = os.path.join(fullpath, datetime.now().strftime('exception-%Y_%m_%d__%H_%M_%S.stderr'))
+        f = open(exception_logname, 'w')
+        f.write("\nSuite caught exception: {}\n".format(exc))
+        f.write("trace\n{}\n".format(trc))
+        f.close()
+
     
     def reset(self, params, rep):
         """ needs to be implemented by subclass. """
