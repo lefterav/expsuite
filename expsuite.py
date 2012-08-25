@@ -617,13 +617,22 @@ class PyExperimentSuite(object):
                 restore = 0
             elif self.options.rerun and len(lines) >= self.options.rerun:
                 logging.debug("Reruning after repetition %d", self.options.rerun)
-                #
-                now = datetime.strftime(datetime.now(),"%yy-%m-%d_%H-%M")
-                shutil.copy(logfile, "{}.{}.bak".format(logfile, now))
+                
+                #backup existing logfile
+                now = datetime.strftime(datetime.now(),"%Y-%m-%d_%H-%M")
+                shutil.copy(logname, "{}.{}.bak".format(logname, now))
+                
+                #trim file to contain only repetitions we need
+                lines = lines[0:self.options.rerun]
+                print len(lines)
+                logfile = open(logname, 'w')
+                logfile.write("".join(lines))
+                logfile.close()
+                
                 restore = self.options.rerun
             else:
                 restore = len(lines)
-                logging.debug("Restoring after repetition %d", self.options.rerun)
+                logging.debug("Restoring after repetition %d", restore)
             
         self.reset(params, rep)
         
