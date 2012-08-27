@@ -100,11 +100,9 @@ class PyExperimentSuite(object):
         optparser.add_option('-r', '--rerun',
             action='store', dest='rerun', type='int', default=None, 
             help="this allows you to rerun an experiment by specifying the iteration after which everything will be re-executed" )  
-
         optparser.add_option('-R', '--rerun-recursive',
             action='store', dest='rerun_recursive', type='int', default=None, 
             help="this allows you to rerun many nested experiments by specifying the iteration after which everything will be re-executed" )  
-
 
         options, args = optparser.parse_args()
         self.options = options
