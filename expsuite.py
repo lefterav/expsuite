@@ -28,6 +28,7 @@ import shutil
 import logging
 import os, sys, time, itertools, re, optparse, types
 from datetime import datetime
+import fnmatch
 
 def mp_runrep(args):
     """ Helper function to allow multiprocessing support. """
@@ -61,6 +62,12 @@ class PyExperimentSuite(object):
     
     def __init__(self):
         self.parse_opt()
+        
+        #don't load the configuration file
+        if self.options.rerun_recursive:
+            self.rerun_recursive()
+            raise SystemExit
+        
         self.parse_cfg()
         
         # list of keys, that had to be renamed because they contained spaces
@@ -93,6 +100,11 @@ class PyExperimentSuite(object):
         optparser.add_option('-r', '--rerun',
             action='store', dest='rerun', type='int', default=None, 
             help="this allows you to rerun an experiment by specifying the iteration after which everything will be re-executed" )  
+
+        optparser.add_option('-R', '--rerun-recursive',
+            action='store', dest='rerun_recursive', type='int', default=None, 
+            help="this allows you to rerun many nested experiments by specifying the iteration after which everything will be re-executed" )  
+
 
         options, args = optparser.parse_args()
         self.options = options
@@ -526,7 +538,21 @@ class PyExperimentSuite(object):
         # write a config file for this single exp. in the folder
         self.write_config_file(params, fullpath)
         
+    def rerun_recursive(self):
+        matched_filenames = []
+        for root, dirnames, filenames in os.walk('.'):
+            for filename in fnmatch.filter(filenames, "experiment.cfg"):
+                matched_filenames.append(os.path.join(root,filename))            
         
+        sys.stderr.write("Found nested filenames: \n{}\n\n".format("\n - ".join(matched_filenames)))
+        for filename in matched_filenames:            
+            self.options.config = filename
+            self.options.rerun = self.options.rerun_recursive
+            sys.stderr.write("\n*******************\nRunning {}".format(filename))
+            self.parse_cfg()
+            self.start()
+            
+    
     def start(self):
         """ starts the experiments as given in the config file. """     
 
@@ -591,9 +617,13 @@ class PyExperimentSuite(object):
         logname = os.path.join(fullpath, '%i.log'%rep)
         # check if repetition exists and has been completed
         restore = 0
-        sys.stderr.write("Looking in path {}".format(fullpath))
+        sys.stderr.write("Looking in path '{}'\n".format(fullpath))
 
-        if os.path.exists(logname):
+        if not os.path.exists(logname):
+            sys.stderr.write("log {} not found".format(logname))
+
+        else:
+            
             logfile = open(logname, 'r')
             lines = logfile.readlines()
             
@@ -607,7 +637,7 @@ class PyExperimentSuite(object):
             logfile.close()
             
             # if completed, continue loop
-            if 'iterations' in params and len(lines) == params['iterations']:
+            if 'iterations' in params and len(lines) == params['iterations'] and not self.options.rerun:
                 return False
             # if not completed, check if restore_state is supported
             if not self.restore_supported:
@@ -615,15 +645,18 @@ class PyExperimentSuite(object):
                 # print 'restore not supported, deleting %s' % logname
                 os.remove(logname)
                 restore = 0
+            elif self.options.rerun and len(lines) < self.options.rerun:
+                sys.stderr.write("Requested experiment has not reached this iteration")
             elif self.options.rerun and len(lines) >= self.options.rerun:
-                logging.debug("Reruning after repetition %d", self.options.rerun)
+                sys.stderr.write("Reruning after iteration {}".format(self.options.rerun))
                 #
                 now = datetime.strftime(datetime.now(),"%yy-%m-%d_%H-%M")
-                shutil.copy(logfile, "{}.{}.bak".format(logfile, now))
+                shutil.copy(logname, "{}.{}.bak".format(logname, now))
                 restore = self.options.rerun
             else:
                 restore = len(lines)
-                logging.debug("Restoring after repetition %d", self.options.rerun)
+                sys.stderr.write("Reruning after iteration %d", restore)
+                logging.debug("Restoring after iteration %d", restore)
             
         self.reset(params, rep)
         
