@@ -24,6 +24,8 @@ from multiprocessing import Process, Pool, cpu_count
 from numpy import *
 import traceback
 import sys
+import shutil
+import logging
 import os, sys, time, itertools, re, optparse, types
 from datetime import datetime
 
@@ -88,6 +90,9 @@ class PyExperimentSuite(object):
         optparser.add_option('-p', '--progress',
             action='store_true', dest='progress', default=False, 
             help="like browse, but only shows name and progress bar")
+        optparser.add_option('-r', '--rerun',
+            action='store', dest='rerun', type='int', default=None, 
+            help="this allows you to rerun an experiment by specifying the iteration after which everything will be re-executed" )  
 
         options, args = optparser.parse_args()
         self.options = options
@@ -586,6 +591,8 @@ class PyExperimentSuite(object):
         logname = os.path.join(fullpath, '%i.log'%rep)
         # check if repetition exists and has been completed
         restore = 0
+        sys.stderr.write("Looking in path {}".format(fullpath))
+
         if os.path.exists(logname):
             logfile = open(logname, 'r')
             lines = logfile.readlines()
@@ -608,8 +615,15 @@ class PyExperimentSuite(object):
                 # print 'restore not supported, deleting %s' % logname
                 os.remove(logname)
                 restore = 0
+            elif self.options.rerun and len(lines) >= self.options.rerun:
+                logging.debug("Reruning after repetition %d", self.options.rerun)
+                #
+                now = datetime.strftime(datetime.now(),"%yy-%m-%d_%H-%M")
+                shutil.copy(logfile, "{}.{}.bak".format(logfile, now))
+                restore = self.options.rerun
             else:
                 restore = len(lines)
+                logging.debug("Restoring after repetition %d", self.options.rerun)
             
         self.reset(params, rep)
         
