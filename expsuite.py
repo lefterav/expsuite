@@ -647,6 +647,7 @@ class PyExperimentSuite(object):
                 restore = 0
             elif self.options.rerun and len(lines) < self.options.rerun:
                 sys.stderr.write("Requested experiment has not reached this iteration")
+                return False
             elif self.options.rerun and len(lines) >= self.options.rerun:
                 logging.debug("Forced reruning after iteration %d\n", self.options.rerun)
                 
