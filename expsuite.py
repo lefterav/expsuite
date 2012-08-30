@@ -665,8 +665,8 @@ class PyExperimentSuite(object):
                 restore = self.options.rerun
             else:
                 restore = len(lines)
-                sys.stderr.write("Auto restoring after iteration %d\n", restore)
-                logging.debug("Auto restoring after iteration %d", restore)
+                sys.stderr.write("Auto restoring after iteration %d\n"% restore)
+                logging.debug("Auto restoring after iteration %d"% restore)
             
         self.reset(params, rep)
         
