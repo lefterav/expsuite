@@ -615,7 +615,9 @@ class PyExperimentSuite(object):
         logname = os.path.join(fullpath, '%i.log'%rep)
         # check if repetition exists and has been completed
         restore = 0
+        
         sys.stderr.write("Looking in path '{}'\n".format(fullpath))
+
 
         if not os.path.exists(logname):
             sys.stderr.write("log {} not found".format(logname))
@@ -653,7 +655,7 @@ class PyExperimentSuite(object):
                 restore = self.options.rerun
             else:
                 restore = len(lines)
-                sys.stderr.write("Reruning after iteration %d", restore)
+                sys.stderr.write("Reruning after iteration %d\n", restore)
                 logging.debug("Restoring after iteration %d", restore)
             
         self.reset(params, rep)
@@ -701,7 +703,7 @@ class PyExperimentSuite(object):
                         self.key_warning_issued.append(k)
                 
             # build string from dictionary
-            outstr = ' '.join(map(lambda x: '%s:%s'%(x[0], str(x[1])), dic.items()))
+            outstr = ' '.join(map(lambda x: '%s:%s'%(x[0], str(x[1])), sorted(dic.items())))
             logfile.write("{}\n".format(outstr))
             logfile.flush()
         logfile.close()
