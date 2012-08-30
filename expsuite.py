@@ -591,7 +591,7 @@ class PyExperimentSuite(object):
         logname = os.path.join(fullpath, '%i.log'%rep)
         # check if repetition exists and has been completed
         restore = 0
-        sys.stderr.write("Looking in path {}".format(fullpath))
+        sys.stderr.write("Looking in path {}\n".format(fullpath))
 
         if os.path.exists(logname):
             logfile = open(logname, 'r')
@@ -680,7 +680,7 @@ class PyExperimentSuite(object):
                         self.key_warning_issued.append(k)
                 
             # build string from dictionary
-            outstr = ' '.join(map(lambda x: '%s:%s'%(x[0], str(x[1])), dic.items()))
+            outstr = ' '.join(map(lambda x: '%s:%s'%(x[0], str(x[1])), sorted(dic.items())))
             logfile.write("{}\n".format(outstr))
             logfile.flush()
         logfile.close()
