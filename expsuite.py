@@ -648,15 +648,24 @@ class PyExperimentSuite(object):
             elif self.options.rerun and len(lines) < self.options.rerun:
                 sys.stderr.write("Requested experiment has not reached this iteration")
             elif self.options.rerun and len(lines) >= self.options.rerun:
-                sys.stderr.write("Reruning after iteration {}".format(self.options.rerun))
-                #
-                now = datetime.strftime(datetime.now(),"%yy-%m-%d_%H-%M")
+                logging.debug("Forced reruning after iteration %d\n", self.options.rerun)
+                
+                #backup existing logfile
+                now = datetime.strftime(datetime.now(),"%Y-%m-%d_%H-%M")
                 shutil.copy(logname, "{}.{}.bak".format(logname, now))
+                
+                #trim file to contain only repetitions we need
+                lines = lines[0:self.options.rerun]
+                print len(lines)
+                logfile = open(logname, 'w')
+                logfile.write("".join(lines))
+                logfile.close()
+                
                 restore = self.options.rerun
             else:
                 restore = len(lines)
-                sys.stderr.write("Reruning after iteration %d\n", restore)
-                logging.debug("Restoring after iteration %d", restore)
+                sys.stderr.write("Auto restoring after iteration %d\n", restore)
+                logging.debug("Auto restoring after iteration %d", restore)
             
         self.reset(params, rep)
         
