@@ -217,7 +217,12 @@ class PyExperimentSuite(object):
         for line in f:
             pairs = line.split()
             for pair in pairs:
-                tag,val = pair.split(':')
+                try:
+                    tag,val = pair.split(':')
+                except:
+                    logging.warning("Result pair not in the required format")
+                    continue
+		 
                 if tags == 'all' or tag in tags:
                     if not tag in results:
                         try:
