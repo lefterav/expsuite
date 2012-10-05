@@ -558,8 +558,8 @@ class PyExperimentSuite(object):
             sys.stderr.write("\n*******************\nRunning {}\n\n".format(filename))
             try:
                 self.parse_cfg()
-            except IOError as error:
-                sys.stderr(error)
+            except IOError:
+                sys.stderr.write("Could not read filename {}".format(filename))
                 continue
             self.start()
             
