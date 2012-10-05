@@ -221,7 +221,12 @@ class PyExperimentSuite(object):
         for line in f:
             pairs = line.split()
             for pair in pairs:
-                tag,val = pair.split(':')
+                try:
+                    tag,val = pair.split(':')
+                except:
+                    logging.warning("Result pair not in the required format")
+                    continue
+		 
                 if tags == 'all' or tag in tags:
                     if not tag in results:
                         try:
@@ -651,6 +656,7 @@ class PyExperimentSuite(object):
                 restore = 0
             elif self.options.rerun and len(lines) < self.options.rerun:
                 sys.stderr.write("Requested experiment has not reached this iteration")
+                return False
             elif self.options.rerun and len(lines) >= self.options.rerun:
                 logging.debug("Forced reruning after iteration %d\n", self.options.rerun)
                 
@@ -668,8 +674,8 @@ class PyExperimentSuite(object):
                 restore = self.options.rerun
             else:
                 restore = len(lines)
-                sys.stderr.write("Auto restoring after iteration %d\n", restore)
-                logging.debug("Auto restoring after iteration %d", restore)
+                sys.stderr.write("Auto restoring after iteration %d\n"% restore)
+                logging.debug("Auto restoring after iteration %d"% restore)
             
         self.reset(params, rep)
         
