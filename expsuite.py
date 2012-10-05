@@ -183,7 +183,11 @@ class PyExperimentSuite(object):
         for p in params:
             if p == 'name':
                 continue
-            cfgp.set(params['name'], p, params[p])
+            value = params[p]
+            #include quotes if needed, to avoid problems on next use of eval
+            if isinstance(value, basestring):
+                value = '"{}"'.format(value)
+            cfgp.set(params['name'], p, value)
         f = open(os.path.join(path, 'experiment.cfg'), 'w')
         cfgp.write(f)
         f.close()
