@@ -112,7 +112,7 @@ class PyExperimentSuite(object):
         """ parses the given config file for experiments. """
         self.cfgparser = ConfigParser()
         if not self.cfgparser.read(self.options.config):
-            raise SystemExit('config file %s not found.'%self.options.config) 
+            raise IOError('config file %s not found.'%self.options.config) 
             
     
     def mkdir(self, path):
@@ -555,8 +555,12 @@ class PyExperimentSuite(object):
         for filename in matched_filenames:            
             self.options.config = filename
             self.options.rerun = self.options.rerun_recursive
-            sys.stderr.write("\n*******************\nRunning {}".format(filename))
-            self.parse_cfg()
+            sys.stderr.write("\n*******************\nRunning {}\n\n".format(filename))
+            try:
+                self.parse_cfg()
+            except IOError:
+                sys.stderr("Could not read config file {}\n".format(self.options.config))
+                continue
             self.start()
             
     
