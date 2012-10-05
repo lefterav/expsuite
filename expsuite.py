@@ -549,7 +549,7 @@ class PyExperimentSuite(object):
         matched_filenames = []
         for root, dirnames, filenames in os.walk('.'):
             for filename in fnmatch.filter(filenames, "experiment.cfg"):
-                matched_filenames.append(os.path.join(root,filename))            
+                matched_filenames.append(os.path.join(os.getcwd(), root,filename))            
         
         sys.stderr.write("Found nested filenames: \n{}\n\n".format("\n - ".join(matched_filenames)))
         for filename in matched_filenames:            
