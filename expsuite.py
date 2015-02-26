@@ -705,14 +705,12 @@ class PyExperimentSuite(object):
             #set path for writing results of iteration
             os.chdir(fullpath)
             #initialize a local logger
-            logger = logging.getLogger('rep-{}_it-{}'.format(rep,it))
-            logger.setLevel(logging.DEBUG)
             # create file handler which logs even debug messages
-            fh = logging.FileHandler('debug')
-            fh.setLevel(logging.DEBUG)
-            fh.setFormatter(formatter)
-            # add the handler to the logger
-            logger.addHandler(fh)
+            loglevel = logging.DEBUG
+            logging.basicConfig(level=loglevel,
+            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+            datefmt='%m-%d %H:%M',
+            filename='debuglog')
 
             try:
                 dic = self.iterate(params, rep, it)
