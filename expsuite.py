@@ -29,6 +29,7 @@ import logging
 import os, sys, time, itertools, re, optparse, types
 from datetime import datetime
 import fnmatch
+from collections import OrderedDict
 
 def mp_runrep(args):
     """ Helper function to allow multiprocessing support. """
@@ -103,7 +104,9 @@ class PyExperimentSuite(object):
         optparser.add_option('-R', '--rerun-recursive',
             action='store', dest='rerun_recursive', type='int', default=None, 
             help="this allows you to rerun many nested experiments by specifying the iteration after which everything will be re-executed" )  
-
+        optparser.add_option('--debug', 
+            action='store_true', dest="debug", default=False,
+            help="Show additional debugging runtime messages")
         options, args = optparser.parse_args()
         self.options = options
         return options, args
@@ -352,7 +355,7 @@ class PyExperimentSuite(object):
         if not hasattr(tags, '__iter__'):
             tags = [tags]
          
-        results = {}
+        results = OrderedDict()
         for tag in tags:
             # get all histories
             histories = zeros((params['repetitions'], params['iterations']))
@@ -364,20 +367,20 @@ class PyExperimentSuite(object):
                     h = self.get_history(exp, i, tag)
                     if len(h) == 0:
                         # history not existent, skip it
-                        print('warning: history %i has length 0 (expected: %i). it will be skipped.'%(i, params['iterations'])) 
+                        logging.warning('Expsuite: history %i has length 0 (expected: %i). it will be skipped.\n'%(i, params['iterations'])) 
                         skipped.append(i)
                     elif len(h) > params['iterations']:
                         # if history too long, crop it 
-                        print('warning: history %i has length %i (expected: %i). it will be truncated.'%(i, len(h), params['iterations']))
+                        logging.warning('Expsuite: history %i has length %i (expected: %i). it will be truncated.\n'%(i, len(h), params['iterations']))
                         h = h[:params['iterations']]
                         histories[i,:] = h
                     elif len(h) < params['iterations']:
                         # if history too short, crop everything else
-                        print('warning: history %i has length %i (expected: %i). all other histories will be truncated.'%(i, len(h), params['iterations']))
+                        logging.warning('Expsuite: history %i has length %i (expected: %i). all other histories will be truncated.\n'%(i, len(h), params['iterations']))
                         params['iterations'] = len(h)
                         histories = histories[:,:params['iterations']]
                         histories[i, :] = h
-            
+
             # remove all rows that have been skipped
             histories = delete(histories, skipped, axis=0)
             params['repetitions'] -= len(skipped)
@@ -572,7 +575,14 @@ class PyExperimentSuite(object):
         if self.options.browse or self.options.browse_big or self.options.progress:
             self.browse()
             raise SystemExit
-        
+
+        loglevel = logging.WARNING
+        if self.options.debug:
+            loglevel = logging.DEBUG
+        logging.basicConfig(level=loglevel,
+            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+            datefmt='%m-%d %H:%M')
+
         sys.setrecursionlimit(2000)
         
         # read main configuration file
@@ -692,7 +702,18 @@ class PyExperimentSuite(object):
         
         # loop through iterations and call iterate
         for it in xrange(restore, params['iterations']):
+            #set path for writing results of iteration
             os.chdir(fullpath)
+            #initialize a local logger
+            logger = logging.getLogger('rep-{}_it-{}'.format(rep,it))
+            logger.setLevel(logging.DEBUG)
+            # create file handler which logs even debug messages
+            fh = logging.FileHandler('debug')
+            fh.setLevel(logging.DEBUG)
+            fh.setFormatter(formatter)
+            # add the handler to the logger
+            logger.addHandler(fh)
+
             try:
                 dic = self.iterate(params, rep, it)
             except Exception as exc:
