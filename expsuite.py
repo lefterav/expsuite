@@ -223,11 +223,12 @@ class PyExperimentSuite(object):
 
         for line in f:
             pairs = line.split()
+            logging.debug("exp:{} rep:{} tags:{} pairs:{}".format(exp, rep, tags, len(pairs)))
             for pair in pairs:
                 try:
                     tag,val = pair.split(':')
                 except:
-                    logging.warning("Result pair not in the required format")
+                    logging.warning("Exp: {} rep: {} Result pair not in the required format".format(exp, rep))
                     continue
 		 
                 if tags == 'all' or tag in tags:
@@ -243,6 +244,7 @@ class PyExperimentSuite(object):
                             results[tag].append(val)
                             
         f.close()
+        logging.debug("results:{}".format(results))
         if len(results) == 0:
             if len(tags) == 1:
                 return []
@@ -361,13 +363,14 @@ class PyExperimentSuite(object):
             histories = zeros((params['repetitions'], params['iterations']))
             skipped = []
             for i in range(params['repetitions']):
+                logging.debug("Getting history over tag {} repetition {}".format(tag, i))
                 try:
                     histories[i, :] = self.get_history(exp, i, tag)
                 except ValueError:
                     h = self.get_history(exp, i, tag)
                     if len(h) == 0:
                         # history not existent, skip it
-                        logging.warning('Expsuite: history %i has length 0 (expected: %i). it will be skipped.\n'%(i, params['iterations'])) 
+                        logging.warning('Exp: %s history %i for tag "%s" has length 0 (expected: %i). all other histories will be truncated.\n'%(exp, i, tag, params['iterations']))
                         skipped.append(i)
                     elif len(h) > params['iterations']:
                         # if history too long, crop it 
@@ -376,14 +379,18 @@ class PyExperimentSuite(object):
                         histories[i,:] = h
                     elif len(h) < params['iterations']:
                         # if history too short, crop everything else
-                        logging.warning('Expsuite: history %i has length %i (expected: %i). all other histories will be truncated.\n'%(i, len(h), params['iterations']))
+                        logging.warning('Exp: %s history %i for tag "%s" has length %i (expected: %i). all other histories will be truncated.\n'%(exp, i, tag, len(h), params['iterations']))
                         params['iterations'] = len(h)
                         histories = histories[:,:params['iterations']]
                         histories[i, :] = h
 
-            # remove all rows that have been skipped
-            histories = delete(histories, skipped, axis=0)
-            params['repetitions'] -= len(skipped)
+            # remove all rows that have bieen skipped
+            logging.debug("removing indices {} from histories table {}".format(skipped,histories))
+            try:
+                histories = delete(histories, skipped, axis=0)
+                params['repetitions'] -= len(skipped)
+            except:
+                pass
                 
             # calculate result from each column with aggregation function
             aggregated = zeros(params['iterations'])
